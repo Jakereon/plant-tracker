@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}Plants{% endblock %} · Plant Tracker</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2f6b3f">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+{% if user %}
+<header class="top">
+  <a class="brand" href="/">🌿 <span>Plants</span></a>
+  <nav>
+    <a href="/identify" title="Identify a plant from a photo">🔍 <span class="hide-sm">Identify</span></a>
+    <a href="/events">🔔 <span class="hide-sm">Events</span>{% if open_events %} <span class="pill">{{ open_events }}</span>{% endif %}</a>
+    <a href="/settings">⚙️ <span class="hide-sm">Settings</span></a>
+    <form method="post" action="/logout"><button class="linkbtn" title="Log out">⏻</button></form>
+  </nav>
+</header>
+{% endif %}
+<main class="wrap">{% block content %}{% endblock %}</main>
+</body>
+</html>

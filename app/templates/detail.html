@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+{% set d = care.data %}
+<p><a href="/" class="muted">← All plants</a></p>
+
+<section class="hero card">
+  <div class="hero-img">{% if cover %}<img src="{{ cover }}" alt="{{ p.name }}">{% else %}<span class="ph">🪴</span>{% endif %}</div>
+  <div class="hero-info">
+    <div class="row between">
+      <h1>{{ p.name }}</h1>
+      <a class="btn small" href="/plants/{{ p.id }}/edit">Edit</a>
+    </div>
+    {% if p.species or d.common_name %}
+    <p class="species"><i>{{ d.scientific_name or p.species }}</i>{% if d.common_name and d.common_name|lower != p.name|lower %} · {{ d.common_name }}{% endif %}{% if d.family %} <span class="muted">· {{ d.family }}</span>{% endif %}</p>
+    {% endif %}
+    <dl class="facts">
+      {% if age %}<div><dt>Age</dt><dd>{{ age }}</dd></div>{% endif %}
+      {% if p.location %}<div><dt>Location</dt><dd>{{ p.location }}</dd></div>{% endif %}
+      <div><dt>Pot</dt><dd>{{ labels.pot }}</dd></div>
+      <div><dt>Light</dt><dd>{{ labels.light }}</dd></div>
+      <div><dt>Watering style</dt><dd>{{ labels.water }}</dd></div>
+      <div><dt>Photos</dt><dd>{{ photos|length }}</dd></div>
+    </dl>
+    {% if p.notes %}<p class="notes">{{ p.notes }}</p>{% endif %}
+  </div>
+</section>
+
+<section class="card" id="water">
+  <div class="row between wrap-row">
+    <div>
+      <h2>💧 Watering</h2>
+      <p class="due {{ sch.status }}"><strong>{{ sch.label }}</strong> — {{ sch.due|fdate }}</p>
+      <p class="muted small">Last watered: {{ sch.last|fdt if sch.last else "never logged" }}{% if sch.last %} ({{ sch.last|ago }}){% endif %}</p>
+    </div>
+    <div class="actions">
+      <form method="post" action="/plants/{{ p.id }}/water"><input type="hidden" name="kind" value="watered"><button class="btn primary">💧 Watered</button></form>
+      <form method="post" action="/plants/{{ p.id }}/water" title="Logs a watering and shortens future intervals a little"><input type="hidden" name="kind" value="dry"><button class="btn">🏜️ Was bone dry</button></form>
+      <form method="post" action="/plants/{{ p.id }}/water" title="Snoozes the reminder and lengthens future intervals a little"><input type="hidden" name="kind" value="wet"><button class="btn">🫧 Still wet</button></form>
+    </div>
+  </div>
+  <details class="math">
+    <summary>Every {{ sch.interval }} days — how is this calculated?</summary>
+    <p class="formula">
+      <span class="chip">{{ '%g'|format(sch.base) }} days <small>{{ sch.base_src }} base</small></span>
+      {% for name, f, label in sch.parts %}× <span class="chip {{ 'dim' if f == 1 }}">{{ '%g'|format(f) }} <small>{{ name }}: {{ label }}</small></span>{% endfor %}
+      = <span class="chip strong">{{ sch.interval }} days</span>
+    </p>
+    <p class="muted small">Base comes from research (edit it under Care info). Pot, light, watering-style and season factors are global settings. "Learned" adjusts when you tap Bone dry / Still wet.</p>
+  </details>
+  <details>
+    <summary>Log something else</summary>
+    <form method="post" action="/plants/{{ p.id }}/water" class="row wrap-row gap">
+      <select name="kind">
+        <option value="watered">Watered</option><option value="fertilized">Fertilized</option>
+        <option value="repotted">Repotted</option><option value="note">Note</option>
+      </select>
+      <input type="datetime-local" name="when" value="{{ now_local }}">
+      <input name="note" placeholder="Note (optional)">
+      <button class="btn">Log</button>
+    </form>
+  </details>
+  {% if log %}
+  <ul class="log">
+    {% for l in log %}<li><span class="log-kind {{ l.kind }}">{{ {'watered':'💧 Watered','still_wet':'🫧 Still wet','fertilized':'🧪 Fertilized','repotted':'🪴 Repotted','note':'📝 Note'}.get(l.kind, l.kind) }}</span> <span class="muted">{{ l.at|fdt }}</span>{% if l.note %} — {{ l.note }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% include "_care.html" %}
+
+<section class="card" id="timeline">
+  <div class="row between wrap-row">
+    <h2>📸 Growth timeline</h2>
+  </div>
+  <form method="post" action="/plants/{{ p.id }}/photos" enctype="multipart/form-data" class="upload">
+    <input type="file" name="photos" accept="image/*" multiple required>
+    <input type="datetime-local" name="taken_at" title="Leave blank to use the photo's own date (EXIF) or now">
+    <input name="note" placeholder="Note (optional)">
+    <button class="btn primary">Upload</button>
+  </form>
+  <p class="muted small">The date comes from the photo itself when available; set it manually for old pictures.</p>
+
+  {% if photos|length >= 2 %}
+  <div class="compare" style="--pos:50%">
+    <img id="cmp-a" src="/media/{{ photos[-1].filename }}" alt="before">
+    <img id="cmp-b" class="after" src="/media/{{ photos[0].filename }}" alt="after">
+    <input type="range" class="cmp-range" min="0" max="100" value="50" aria-label="Compare slider">
+  </div>
+  <div class="row gap wrap-row compare-pick">
+    <label>Before <select class="cmp-sel" data-target="cmp-a">{% for ph in photos %}<option value="/media/{{ ph.filename }}" {{ 'selected' if loop.last }}>{{ ph.taken_at|fdate }} ({{ ph.age }})</option>{% endfor %}</select></label>
+    <label>After <select class="cmp-sel" data-target="cmp-b">{% for ph in photos %}<option value="/media/{{ ph.filename }}" {{ 'selected' if loop.first }}>{{ ph.taken_at|fdate }} ({{ ph.age }})</option>{% endfor %}</select></label>
+  </div>
+  {% endif %}
+
+  {% for month, items in groups %}
+  <h3 class="month">{{ month }}</h3>
+  <div class="photos">
+    {% for ph in items %}
+    <figure class="photo">
+      <a href="/media/{{ ph.filename }}" target="_blank"><img src="/media/{{ ph.thumb }}" loading="lazy" alt=""></a>
+      <figcaption>
+        <strong>{{ ph.taken_at|fdt }}</strong>{% if ph.age %} <span class="muted">· age {{ ph.age }}</span>{% endif %}
+        {% if ph.note %}<div>{{ ph.note }}</div>{% endif %}
+        <details class="photo-menu"><summary>⋯</summary>
+          <div class="stack small">
+            {% if p.cover_photo_id != ph.id %}<form method="post" action="/photos/{{ ph.id }}/cover"><button class="linkbtn">⭐ Use as cover</button></form>{% endif %}
+            <form method="post" action="/photos/{{ ph.id }}/identify"><button class="linkbtn">🔍 Identify plant from this photo</button></form>
+            <form method="post" action="/photos/{{ ph.id }}/edit" class="stack">
+              <input type="datetime-local" name="taken_at" value="{{ ph.taken_at[:16] }}">
+              <input name="note" value="{{ ph.note or '' }}" placeholder="Note">
+              <button class="btn small">Save</button>
+            </form>
+            <form method="post" action="/photos/{{ ph.id }}/delete" onsubmit="return confirm('Delete this photo?')"><button class="linkbtn danger-text">🗑 Delete photo</button></form>
+          </div>
+        </details>
+      </figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No photos yet. Upload one now and add more over time to watch it grow.</p>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ "Set up" if setup else "Log in" }}{% endblock %}
+{% block content %}
+<div class="auth card">
+  <div class="auth-logo">🌿</div>
+  <h1>{{ "Welcome! Create your login" if setup else "Plant Tracker" }}</h1>
+  {% if setup %}<p class="muted">This is the only account. You can change the password later in Settings.</p>{% endif %}
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ '/setup' if setup else '/login' }}" class="stack">
+    <label>Username <input name="username" value="{{ username or '' }}" autocomplete="username" required autofocus></label>
+    <label>Password <input type="password" name="password" autocomplete="{{ 'new-password' if setup else 'current-password' }}" required></label>
+    {% if setup %}<label>Confirm password <input type="password" name="confirm" autocomplete="new-password" required></label>{% endif %}
+    {% if not setup %}<input type="hidden" name="next" value="{{ next or '/' }}">{% endif %}
+    <button class="btn primary">{{ "Create account" if setup else "Log in" }}</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search {{ total }} plant{{ '' if total == 1 else 's' }}…"
+         hx-get="/tiles" hx-trigger="input changed delay:300ms, search" hx-target="#grid" hx-include="[name=sort]">
+  <select name="sort" hx-get="/tiles" hx-target="#grid" hx-include="[name=q]">
+    {% for k, v in sorts.items() %}<option value="{{ k }}" {{ 'selected' if k == sort }}>{{ v }}</option>{% endfor %}
+  </select>
+  <a class="btn primary" href="/plants/new">＋ Add plant</a>
+</div>
+<div id="grid" class="grid">{% include "_tiles.html" %}</div>
+{% endblock %}

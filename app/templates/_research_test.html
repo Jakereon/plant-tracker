@@ -1,0 +1,9 @@
+<h3>Results for “{{ q }}”</h3>
+<table class="srctable">
+  {% for l in result.log %}
+  <tr><td>{{ l.provider }}</td><td><span class="st {{ l.status|replace(' ', '-') }}">{{ l.status }}</span></td><td class="muted small">{{ l.detail }}{% if l.fields %}<br>used: {{ l.fields|join(', ') }}{% endif %}</td></tr>
+  {% endfor %}
+</table>
+<details><summary>{{ result.data|length }} fields found</summary>
+  <dl class="testdata">{% for k, v in result.data.items() %}<dt>{{ LABELS.get(k, k) }} <span class="src">{{ result.sources[k] }}</span></dt><dd>{{ v }}</dd>{% endfor %}</dl>
+</details>

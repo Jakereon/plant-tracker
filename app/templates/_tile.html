@@ -1,0 +1,14 @@
+<article class="tile" id="tile-{{ c.p.id }}">
+  <a href="/plants/{{ c.p.id }}" class="tile-img">
+    {% if c.cover %}<img src="{{ c.cover }}" alt="{{ c.p.name }}" loading="lazy">{% else %}<span class="ph">🪴</span>{% endif %}
+    <span class="badge {{ c.s.status }}">💧 {{ c.s.label }}</span>
+  </a>
+  <div class="tile-body">
+    <div class="tile-text">
+      <a href="/plants/{{ c.p.id }}" class="tile-name">{{ c.p.name }}</a>
+      <div class="tile-sub">{% if c.sub %}<i>{{ c.sub }}</i>{% endif %}{% if c.sub and c.age %} · {% endif %}{{ c.age }}</div>
+    </div>
+    <button class="water-btn" title="Mark watered now" hx-post="/plants/{{ c.p.id }}/water"
+            hx-vals='{"kind":"watered","ret":"tile"}' hx-target="#tile-{{ c.p.id }}" hx-swap="outerHTML">💧</button>
+  </div>
+</article>

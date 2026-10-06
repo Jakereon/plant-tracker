@@ -1,0 +1,45 @@
+services:
+  plant-tracker:
+    build: .
+    image: plant-tracker:latest
+    container_name: plant-tracker
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data            # database + photos — back this folder up
+    environment:
+      TZ: America/Chicago       # your timezone — reminders fire at the "reminder hour" in this zone
+
+      # Everything below is OPTIONAL and can be entered in the app's Settings page instead.
+      # Values set in Settings win over these.
+
+      # Plant care databases (free sign-ups)
+      PERENUAL_API_KEY: ${PERENUAL_API_KEY:-}
+      TREFLE_TOKEN: ${TREFLE_TOKEN:-}
+      PERMAPEOPLE_KEY_ID: ${PERMAPEOPLE_KEY_ID:-}
+      PERMAPEOPLE_KEY_SECRET: ${PERMAPEOPLE_KEY_SECRET:-}
+
+      # Photo identification
+      PLANTNET_API_KEY: ${PLANTNET_API_KEY:-}
+
+      # Local AI — fills gaps in research, and identifies photos when Pl@ntNet can't
+      OLLAMA_URL: ${OLLAMA_URL:-}                 # e.g. http://ollama:11434 or http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen2.5vl:7b}
+
+      # Notifications (later) — leave blank and events are only recorded in the app / API
+      NTFY_URL: ${NTFY_URL:-}                     # e.g. http://ntfy:80/plants
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      BASE_URL: ${BASE_URL:-}                     # how your phone reaches this app, e.g. http://plants.lan:8080
+    # Uncomment if Ollama runs directly on the Docker host rather than in a container:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+  # Optional: run Ollama in the same stack (add `deploy.resources` GPU config if you have one)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./ollama:/root/.ollama

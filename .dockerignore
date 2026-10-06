@@ -1,0 +1,6 @@
+data/
+ollama/
+.env
+**/__pycache__
+*.pyc
+.git

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<div class="row between wrap-row">
+  <h1>🔔 Watering events</h1>
+  <form method="post" action="/events/check"><button class="btn small">Check now</button></form>
+</div>
+<p class="muted">The app checks every 15 minutes and creates an event when a plant is due (and again if it goes overdue). These are what will be pushed to ntfy once a topic URL is set in Settings. Also available as JSON at <code>/api/events</code>.</p>
+
+<h2>Open</h2>
+{% if open %}
+<div class="events">
+  {% for e in open %}
+  <div class="event card {{ e.kind }}">
+    <div>
+      <strong><a href="/plants/{{ e.plant_id }}">{{ e.plant_name }}</a></strong> — {{ e.message }}
+      <div class="muted small">{{ e.kind|replace('_', ' ') }} · due {{ e.due_at|fdt }} · {{ e.status }}{% if e.notified_at %} (pushed {{ e.notified_at|fdt }}){% endif %}</div>
+    </div>
+    <div class="row gap">
+      <form method="post" action="/plants/{{ e.plant_id }}/water"><input type="hidden" name="kind" value="watered"><button class="btn primary small">💧 Watered</button></form>
+      <form method="post" action="/plants/{{ e.plant_id }}/water"><input type="hidden" name="kind" value="wet"><button class="btn small">🫧 Still wet</button></form>
+      <form method="post" action="/events/{{ e.id }}/ack"><button class="btn small">Dismiss</button></form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}<p class="muted">Nothing due. 🌱</p>{% endif %}
+
+<h2>History</h2>
+<table class="table">
+  <thead><tr><th>Created</th><th>Plant</th><th>Event</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for e in recent %}
+  <tr><td>{{ e.created_at|fdt }}</td><td><a href="/plants/{{ e.plant_id }}">{{ e.plant_name }}</a></td><td>{{ e.kind|replace('_', ' ') }}</td><td><span class="st {{ e.status }}">{{ e.status }}</span></td></tr>
+  {% else %}<tr><td colspan="4" class="muted">No events yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

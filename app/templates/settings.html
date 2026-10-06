@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>⚙️ Settings</h1>
+{% if msg %}<p class="flash">{{ msg }}</p>{% endif %}
+<nav class="subnav"><a href="#lists">Conditions</a><a href="#general">Schedule</a><a href="#integrations">Sources & AI</a><a href="#api">API</a><a href="#account">Account</a></nav>
+
+<form method="post" action="/settings/lists" class="card" id="lists">
+  <h2>Growing conditions</h2>
+  <p class="muted">Each plant picks one of each. The factor multiplies its watering interval: below 1 = water more often, above 1 = less often.</p>
+  <div class="lists">
+  {% for name, title, help in lists %}
+    <fieldset>
+      <legend>{{ title }}</legend>
+      <p class="muted small">{{ help }}</p>
+      <table class="optlist">
+        <tr><th>Label</th><th>Factor</th></tr>
+        {% for o in s[name] %}
+        <tr><td><input type="hidden" name="{{ name }}.key" value="{{ o.key }}"><input name="{{ name }}.label" value="{{ o.label }}"></td>
+            <td><input type="number" step="0.05" min="0.1" max="5" name="{{ name }}.factor" value="{{ o.factor }}"></td></tr>
+        {% endfor %}
+        {% for _ in range(2) %}
+        <tr class="new"><td><input type="hidden" name="{{ name }}.key" value=""><input name="{{ name }}.label" placeholder="Add new…"></td>
+            <td><input type="number" step="0.05" min="0.1" max="5" name="{{ name }}.factor" value="1"></td></tr>
+        {% endfor %}
+      </table>
+    </fieldset>
+  {% endfor %}
+  </div>
+  <p class="muted small">Clear a label to remove it. Plants using a removed option fall back to ×1.</p>
+  <button class="btn primary">Save conditions</button>
+</form>
+
+<form method="post" action="/settings/general" class="card form-grid" id="general">
+  <h2 class="span2">Schedule</h2>
+  <label>Hemisphere
+    <select name="hemisphere"><option value="north" {{ 'selected' if s.seasons.hemisphere != 'south' }}>Northern</option><option value="south" {{ 'selected' if s.seasons.hemisphere == 'south' }}>Southern</option></select></label>
+  <label>Default interval when research has none (days) <input type="number" name="default_watering_days" min="1" max="60" value="{{ s.default_watering_days }}"></label>
+  {% for season in ('spring','summer','fall','winter') %}
+  <label>{{ season|capitalize }} factor <input type="number" step="0.05" min="0.1" max="5" name="{{ season }}" value="{{ s.seasons[season] }}"></label>
+  {% endfor %}
+  <label>Reminder hour (0–23) <input type="number" name="reminder_hour" min="0" max="23" value="{{ s.reminder_hour }}"></label>
+  <label>Mark overdue after (days) <input type="number" name="overdue_after_days" min="1" max="30" value="{{ s.overdue_after_days }}"></label>
+  <label>“Still wet” snoozes for (days) <input type="number" name="still_wet_snooze_days" min="1" max="14" value="{{ s.still_wet_snooze_days }}"></label>
+  <div class="span2"><button class="btn primary">Save schedule</button></div>
+</form>
+
+<form method="post" action="/settings/integrations" class="card" id="integrations">
+  <h2>Research sources & AI</h2>
+  <p class="muted">Order used for research: iNaturalist → GBIF → Perenual → Trefle → Permapeople → Wikipedia, then Ollama fills anything still missing. iNaturalist, GBIF and Wikipedia need no key. All the keys below are free to sign up for. Blank fields fall back to the container's environment variables.</p>
+  {% for group, items in integrations %}
+  <fieldset class="form-grid">
+    <legend>{{ group }}</legend>
+    {% for key, label, envname, hint in items %}
+    <label>{{ label }}
+      <input name="{{ key }}" value="{{ s[key] }}" type="{{ 'password' if key in secret_keys else 'text' }}" autocomplete="off"
+             placeholder="{{ ('from env ' ~ envname) if env.get(envname) else '' }}">
+      <span class="muted small">{% if hint.startswith('http') %}<a href="{{ hint }}" target="_blank" rel="noopener">Get a key ↗</a>{% else %}{{ hint }}{% endif %} · env <code>{{ envname }}</code>{% if env.get(envname) %} ✓ set{% endif %}</span>
+    </label>
+    {% endfor %}
+  </fieldset>
+  {% endfor %}
+  <div class="row gap wrap-row">
+    <button class="btn primary">Save</button>
+    <button class="btn" type="button" hx-post="/settings/test-ntfy" hx-target="#ntfy-result">Send test notification</button>
+    <span id="ntfy-result" class="small"></span>
+  </div>
+</form>
+
+<div class="card">
+  <h2>Test research sources</h2>
+  <p class="muted small">Runs every source for a plant without saving anything, so you can check your keys and Ollama. Save first if you just changed them.</p>
+  <form class="row gap wrap-row" hx-post="/settings/test-research" hx-target="#test-result" hx-indicator="#test-spin">
+    <input name="q" value="Monstera deliciosa">
+    <button class="btn">Run test</button>
+    <span id="test-spin" class="htmx-indicator"><span class="spinner"></span> Researching…</span>
+  </form>
+  <div id="test-result"></div>
+</div>
+
+<div class="card" id="api">
+  <h2>API</h2>
+  <p class="muted small">For ntfy action buttons, Home Assistant, scripts, etc. Send <code>Authorization: Bearer &lt;token&gt;</code>. Endpoints: <code>GET /api/plants</code>, <code>GET /api/events</code>, <code>POST /api/plants/{id}/water</code>, <code>POST /api/events/{id}/ack</code>. Docs at <a href="/api/docs">/api/docs</a>.</p>
+  <div class="row gap wrap-row">
+    <input class="mono grow" readonly value="{{ s.api_token }}" onclick="this.select()">
+    <form method="post" action="/settings/token" onsubmit="return confirm('Old token stops working. Continue?')"><button class="btn small">Regenerate</button></form>
+  </div>
+</div>
+
+<form method="post" action="/settings/password" class="card form-grid" id="account">
+  <h2 class="span2">Account · {{ user }}</h2>
+  <label>Current password <input type="password" name="current" autocomplete="current-password" required></label>
+  <span></span>
+  <label>New password <input type="password" name="new" autocomplete="new-password" minlength="8" required></label>
+  <label>Confirm new password <input type="password" name="confirm" autocomplete="new-password" minlength="8" required></label>
+  <div class="span2"><button class="btn">Change password</button></div>
+</form>
+{% endblock %}

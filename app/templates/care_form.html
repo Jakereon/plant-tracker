@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Care info · {{ p.name }}{% endblock %}
+{% block content %}
+<p><a href="/plants/{{ p.id }}#care" class="muted">← {{ p.name }}</a></p>
+<h1>Edit care info</h1>
+<p class="muted">Anything you change here is kept even when the plant is re-researched. Clear a field to go back to the researched value.</p>
+<form method="post" class="card form-grid">
+  {% for key, label in fields %}
+  {% set val = care.data.get(key, '') %}
+  <label class="{{ 'span2' if key in ('description','watering','light','cultivation','pests','fertilizer','soil') }}">
+    {{ label }} {% if care.sources.get(key) %}<span class="src">{{ care.sources[key] }}</span>{% endif %}
+    {% if key == 'watering_days' %}
+      <input type="number" min="1" max="60" name="{{ key }}" value="{{ val }}">
+    {% elif (val|string|length) > 80 or key in ('description','watering','cultivation','pests') %}
+      <textarea name="{{ key }}" rows="3">{{ val }}</textarea>
+    {% else %}
+      <input name="{{ key }}" value="{{ val }}">
+    {% endif %}
+  </label>
+  {% endfor %}
+  <div class="span2"><button class="btn primary">Save</button></div>
+</form>
+{% endblock %}

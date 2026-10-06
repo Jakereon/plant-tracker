@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Identify{% endblock %}
+{% block content %}
+{% if plant %}<p><a href="/plants/{{ plant.id }}" class="muted">← {{ plant.name }}</a></p>{% endif %}
+<h1>🔍 Identify a plant</h1>
+
+{% if not result %}
+<p class="muted">Take or choose a clear photo of a leaf, flower or the whole plant. Pl@ntNet is tried first; a local Ollama vision model is used if Pl@ntNet isn't set up or isn't confident.</p>
+{% if error %}<p class="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/identify" enctype="multipart/form-data" class="card identify-form" id="idform">
+  <label class="dropzone">
+    <input type="file" name="photo" accept="image/*" capture="environment" required onchange="this.form.requestSubmit()">
+    <span class="dz-icon">📷</span>
+    <span>Tap to take a photo or choose one</span>
+  </label>
+  <noscript><button class="btn primary">Identify</button></noscript>
+  <p class="researching hidden" id="idwait"><span class="spinner"></span> Identifying…</p>
+</form>
+{% else %}
+<div class="id-result">
+  <img class="id-preview" src="{{ preview }}" alt="your photo">
+  <div class="id-candidates">
+    {% for c in result.candidates %}
+    <div class="candidate card">
+      <div class="row between">
+        <div>
+          <div class="cand-name"><i>{{ c.scientific_name }}</i></div>
+          {% if c.common_name %}<div>{{ c.common_name }}</div>{% endif %}
+          <div class="muted small">{{ c.family }}{% if c.family %} · {% endif %}{{ c.source }}</div>
+        </div>
+        <div class="score"><div class="score-bar"><span style="width: {{ (c.score * 100)|round|int }}%"></span></div>{{ (c.score * 100)|round|int }}%</div>
+      </div>
+      {% if c.reason %}<p class="small">{{ c.reason }}</p>{% endif %}
+      {% if c.images %}<div class="refs">{% for u in c.images if u %}<img src="{{ u }}" loading="lazy" alt="reference">{% endfor %}</div>{% endif %}
+      <div class="row gap">
+        {% if plant %}
+        <form method="post" action="/plants/{{ plant.id }}/species"><input type="hidden" name="species" value="{{ c.scientific_name }}"><button class="btn primary small">Set as {{ plant.name }}'s species</button></form>
+        {% else %}
+        <a class="btn primary small" href="/plants/new?species={{ c.scientific_name|urlencode }}&name={{ (c.common_name.split(',')[0] if c.common_name else c.scientific_name)|urlencode }}&tmp={{ tmp }}">＋ Add as new plant</a>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card"><p>No match found. Try a closer, sharper photo of a single leaf or flower.</p></div>
+    {% endfor %}
+    <details class="sources">
+      <summary>Sources checked</summary>
+      <table class="srctable">{% for l in result.log %}<tr><td>{{ l.provider }}</td><td><span class="st {{ l.status|replace(' ', '-') }}">{{ l.status }}</span></td><td class="muted small">{{ l.detail }}</td></tr>{% endfor %}</table>
+    </details>
+    <p><a class="btn" href="/identify">Try another photo</a></p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

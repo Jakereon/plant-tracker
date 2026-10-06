@@ -1,0 +1,12 @@
+{% for c in cards %}{% include "_tile.html" %}{% endfor %}
+{% if has_more %}
+<div class="more" hx-get="/tiles?page={{ page + 1 }}&q={{ q|urlencode }}&sort={{ sort }}" hx-trigger="revealed" hx-swap="outerHTML">Loading more…</div>
+{% endif %}
+{% if not cards and page == 1 %}
+<div class="empty">
+  {% if q %}<p>No plants match “{{ q }}”.</p>
+  {% else %}<div class="empty-icon">🪴</div><h2>No plants yet</h2>
+  <p class="muted">Add your first plant, or snap a photo and let the app figure out what it is.</p>
+  <p><a class="btn primary" href="/plants/new">＋ Add plant</a> <a class="btn" href="/identify">🔍 Identify from photo</a></p>{% endif %}
+</div>
+{% endif %}

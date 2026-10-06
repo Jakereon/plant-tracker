@@ -1,0 +1,46 @@
+{% set d = care.data %}
+{% set running = p.research_status == 'running' %}
+<section class="card" id="care" {% if running %}hx-get="/plants/{{ p.id }}/care" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  <div class="row between wrap-row">
+    <h2>📖 Care info</h2>
+    <div class="row gap">
+      {% if not running %}
+      <button class="btn small" hx-post="/plants/{{ p.id }}/research" hx-target="#care" hx-swap="outerHTML">↻ Re-research</button>
+      <a class="btn small" href="/plants/{{ p.id }}/care/edit">Edit</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if running %}
+  <p class="researching"><span class="spinner"></span> Researching <i>{{ p.species or p.name }}</i> across plant databases… (Ollama fills any gaps, which can take a minute)</p>
+  {% elif not d %}
+  <p class="muted">{% if p.research_status == 'error' %}Couldn't find anything for “{{ p.species or p.name }}”. Try a more specific species name (Edit plant), or fill the care info in yourself.{% else %}No care info yet.{% endif %}</p>
+  {% endif %}
+
+  {% if d %}
+  {% if d.description %}<p class="about">{{ d.description }}</p>{% endif %}
+  <div class="care-grid">
+    {% for key, label in fields %}
+      {% if d.get(key) and key not in ('common_name','scientific_name','family','description','image_url','wikipedia_url') %}
+      <div class="care-item {{ 'wide' if (d[key]|string|length) > 220 }}">
+        <div class="care-label">{{ label }} <span class="src" title="Source">{{ care.sources.get(key, '') }}</span></div>
+        <div class="care-val">{% if key == 'watering_days' %}{{ d[key] }} days{% else %}{{ d[key] }}{% endif %}</div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% if d.wikipedia_url %}<p class="small"><a href="{{ d.wikipedia_url }}" target="_blank" rel="noopener">Read more on Wikipedia ↗</a></p>{% endif %}
+  {% endif %}
+
+  {% if care.log and not running %}
+  <details class="sources">
+    <summary>Sources checked{% if care.researched_at %} · {{ care.researched_at|fdt }}{% endif %}</summary>
+    <table class="srctable">
+      {% for l in care.log %}
+      <tr><td>{{ l.provider }}</td><td><span class="st {{ l.status|replace(' ', '-') }}">{{ l.status }}</span></td><td class="muted small">{{ l.detail }}{% if l.fields %}<br>used: {{ l.fields|join(', ') }}{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="muted small">Add API keys in Settings to unlock more sources. Your own edits always win.</p>
+  </details>
+  {% endif %}
+</section>

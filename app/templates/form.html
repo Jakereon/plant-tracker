@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit " ~ p.name if editing else "Add plant" }}{% endblock %}
+{% block content %}
+<p><a href="{{ '/plants/' ~ p.id if editing else '/' }}" class="muted">← Back</a></p>
+<h1>{{ "Edit " ~ p.name if editing else "Add a plant" }}</h1>
+{% if error %}<p class="alert">{{ error }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="card form-grid">
+  <label class="span2">Name <input name="name" value="{{ p.name or '' }}" placeholder="e.g. Big Monstera" required></label>
+  <label class="span2">Species <span class="muted small">— used for research; common or scientific name both work</span>
+    <input name="species" value="{{ p.species or '' }}" placeholder="e.g. Monstera deliciosa, or snake plant">
+  </label>
+  {% if not editing and not tmp %}<p class="span2 small hint">Not sure what it is? <a href="/identify">🔍 Identify it from a photo</a></p>{% endif %}
+  <label>Location <input name="location" value="{{ p.location or '' }}" placeholder="Living room window"></label>
+  <label>Got it on <input type="date" name="acquired_on" value="{{ p.acquired_on or '' }}"></label>
+  <label>Age when you got it <span class="muted small">(months)</span>
+    <input type="number" min="0" name="age_months" value="{{ p.age_at_acquisition_months or 0 }}"></label>
+  {% if not editing %}<label>Last watered <input type="date" name="last_watered"></label>{% endif %}
+  <label>Pot type <select name="pot_type">{% for o in pot_types %}<option value="{{ o.key }}" {{ 'selected' if o.key == p.pot_type }}>{{ o.label }}</option>{% endfor %}</select></label>
+  <label>Light <select name="light_level">{% for o in light_levels %}<option value="{{ o.key }}" {{ 'selected' if o.key == p.light_level }}>{{ o.label }}</option>{% endfor %}</select></label>
+  <label class="span2">Watering style <select name="water_pref">{% for o in water_prefs %}<option value="{{ o.key }}" {{ 'selected' if o.key == p.water_pref }}>{{ o.label }}</option>{% endfor %}</select></label>
+  <label class="span2">Notes <textarea name="notes" rows="3">{{ p.notes or '' }}</textarea></label>
+  {% if not editing %}
+  <div class="span2">
+    {% if tmp %}<input type="hidden" name="tmp" value="{{ tmp }}">
+    <div class="identified"><img src="/tmp-photo/{{ tmp }}" alt=""><span>This photo will be the first entry in the plant's timeline.</span></div>{% endif %}
+    <label>{{ "More photos" if tmp else "Photos" }} <input type="file" name="photos" accept="image/*" multiple></label>
+  </div>
+  {% else %}
+  <label class="span2 check"><input type="checkbox" name="reset_learning" value="1"> Reset learned watering adjustment (currently ×{{ '%.2f'|format(p.watering_adjust or 1) }})</label>
+  {% endif %}
+  <div class="span2 row">
+    <button class="btn primary">{{ "Save" if editing else "Add plant & research it" }}</button>
+  </div>
+</form>
+{% if editing %}
+<form method="post" action="/plants/{{ p.id }}/delete" class="danger-zone" onsubmit="return confirm('Delete this plant and all its photos? This cannot be undone.')">
+  <button class="btn danger">Delete plant</button>
+</form>
+{% endif %}
+{% endblock %}
